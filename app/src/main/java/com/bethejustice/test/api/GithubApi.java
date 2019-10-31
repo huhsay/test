@@ -1,5 +1,7 @@
 package com.bethejustice.test.api;
 
+import com.bethejustice.test.model.GithubRepo;
+
 import java.util.List;
 
 import retrofit2.Call;

@@ -1,17 +1,18 @@
 package com.bethejustice.test;
 
+import android.net.Uri;
+import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.net.Uri;
-import android.os.Bundle;
-import android.util.Log;
-
 import com.bethejustice.test.api.GithubApi;
 import com.bethejustice.test.api.GithubApiProvider;
-import com.bethejustice.test.api.GithubRepo;
+import com.bethejustice.test.model.GithubRepo;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import retrofit2.Call;
@@ -19,8 +20,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = "MainActivity";
 
     Call<List<GithubRepo>> repoCall;
     GithubApi api;
@@ -32,25 +31,34 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        api = GithubApiProvider.provideGithubApi(this);
+        api = GithubApiProvider.provideGithubApi();
         recyclerView = findViewById(R.id.recyclerView);
         adapter = new RepositoryAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-
         Uri data = this.getIntent().getData();
         if (data != null && data.isHierarchical()) {
             String uri = this.getIntent().getDataString();
-            if(uri.startsWith("testapp://repos/")){
+            assert uri != null;
+            if (uri.startsWith("testapp://repos/")) {
                 String param = uri.replace("testapp://repos/", "");
 
                 repoCall = api.getRepository(param);
                 repoCall.enqueue(new Callback<List<GithubRepo>>() {
                     @Override
                     public void onResponse(Call<List<GithubRepo>> call, Response<List<GithubRepo>> response) {
-                        Log.d(TAG, "onResponse: " + response.body().get(1).owner.name);
-                        adapter.setItems(response.body());
+
+                        assert response.body() != null;
+                        adapter.setUserItem(response.body().get(0).owner);
+                        List<GithubRepo> repos = response.body();
+                        Collections.sort(repos, new Comparator<GithubRepo>() {
+                            @Override
+                            public int compare(GithubRepo o1, GithubRepo o2) {
+                                return o2.stargazersCount - o1.stargazersCount;
+                            }
+                        });
+                        adapter.setRepositoryItems(response.body());
                     }
 
                     @Override
